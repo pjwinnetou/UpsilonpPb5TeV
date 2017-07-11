@@ -1,6 +1,6 @@
 #include <iostream>
-#include "/home/deathold/work/CMS/analysis/Upsilon_RpA/UpsilonpPb5TeV/rootFitHeaders.h"
-#include "/home/deathold/work/CMS/analysis/Upsilon_RpA/UpsilonpPb5TeV/commonUtility.h"
+#include "../../rootFitHeaders.h"
+#include "../../commonUtility.h"
 #include <RooGaussian.h>
 #include <RooCBShape.h>
 #include <RooWorkspace.h>
@@ -10,11 +10,11 @@
 #include "TText.h"
 #include "TArrow.h"
 #include "TFile.h"
-#include "/home/deathold/work/CMS/analysis/Upsilon_RpA/UpsilonpPb5TeV/cutsAndBin.h"
-#include "/home/deathold/work/CMS/analysis/Upsilon_RpA/UpsilonpPb5TeV/PsetCollection.h"
-#include "/home/deathold/work/CMS/analysis/Upsilon_RpA/UpsilonpPb5TeV/CMS_lumi.C"
-#include "/home/deathold/work/CMS/analysis/Upsilon_RpA/UpsilonpPb5TeV/tdrstyle.C"
-#include "/home/deathold/work/CMS/analysis/Upsilon_RpA/UpsilonpPb5TeV/SONGKYO.h"
+#include "../../cutsAndBin.h"
+#include "../../PsetCollection.h"
+#include "../../CMS_lumi.C"
+#include "../../tdrstyle.C"
+#include "../../SONGKYO.h"
 
 using namespace std;
 using namespace RooFit;
