@@ -124,7 +124,7 @@ void onia2ySkim_2nd( int nevt = -1,
     mytree->Add(fname.Data());
   }
   if (fileID == kPADATA) {
-    fname = "/home/samba.old/UpsilonAnalysis/tempfiles/Upsilon_pPb/data/OniaTree_PromptAOD_pPb2013_2nd_211313-211631_GR_P_V43D_nocut_all.root"; // in lxplus
+    fname = "/home/samba.old/UpsilonAnalysis/tempfiles/Upsilon_pPb/data/RD2013_pa_2nd_run_merged.root"; // in lxplus
     mytree->Add(fname.Data());
   }
   else if  (fileID == kAADATA) { 
@@ -792,16 +792,16 @@ void onia2ySkim_2nd( int nevt = -1,
       // Reference : https://twiki.cern.ch/twiki/bin/view/CMS/SWGuideMuonIdRun2#Soft_Muon
       bool muplSoft = ( (Reco_QQ_mupl_TMOneStaTight[irqq]==true) &&
           (Reco_QQ_mupl_nTrkWMea[irqq] > 5) &&
-          (Reco_QQ_mupl_nPixWMea[irqq] > 0) &&
+          (Reco_QQ_mupl_nPixWMea[irqq] > 1) &&
           (Reco_QQ_mupl_dxy[irqq]<0.3) &&
-          (Reco_QQ_mupl_dz[irqq]<20.)	 &&  (Reco_QQ_mupl_isHighPurity[irqq]==true) 
+          (Reco_QQ_mupl_dz[irqq]<30.)	 //&&  (Reco_QQ_mupl_isHighPurity[irqq]==true) 
           ) ; 
 
       bool mumiSoft = ( (Reco_QQ_mumi_TMOneStaTight[irqq]==true) &&
           (Reco_QQ_mumi_nTrkWMea[irqq] > 5) &&
-          (Reco_QQ_mumi_nPixWMea[irqq] > 0) &&
+          (Reco_QQ_mumi_nPixWMea[irqq] > 1) &&
           (Reco_QQ_mumi_dxy[irqq]<0.3) &&
-          (Reco_QQ_mumi_dz[irqq]<20.)  && (Reco_QQ_mumi_isHighPurity[irqq]==true)
+          (Reco_QQ_mumi_dz[irqq]<30.) // && (Reco_QQ_mumi_isHighPurity[irqq]==true)
           ) ; 
 
       bool muplHighPtCut = ( (Reco_QQ_mupl_nMuValHits[irqq]>0) &&
