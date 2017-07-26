@@ -56,7 +56,7 @@ Double_t fTsallis2SR(Double_t *x, Double_t *fpar)
   return fr;
 }
 
-bool isTrackMatched(float pt1, float eta1, float phi1, float pt2, float eta2, float phi2) ;
+
 void onia2ySkim_2nd( int nevt = -1,
 		 int fileID = kPADATA,
 		 int trigId=kL1DoubleMuOpen2016, 
@@ -66,20 +66,13 @@ void onia2ySkim_2nd( int nevt = -1,
 		 bool DiMuSign = false
 		 ) 
 {
-
   using namespace std;
-  
   
   bool isMC = false; 
   if ( (fileID == kPPMC) || (fileID == kPPMCUps1S) || (fileID == kPPMCUps2S) || (fileID == kPPMCUps3S) || (fileID == kAAMC) || (fileID == kAAMCUps1S) || (fileID == kAAMCUps2S) || (fileID == kAAMCUps3S) )
     isMC = true;
 
   TChain *mytree = new TChain("myTree");
-  /*  TChain *trkTree;
-  if ( (fileID == kPPDATA) || (fileID == kPADATA) || (fileID == kPPMC) || (fileID == kPAMC) || (fileID == kPPMCUps1S) || (fileID==kPPMCUps2S) || (fileID == kPPMCUps3S) )
-  trkTree = new TChain("ppTrack/trackTree");
-  else 
-  trkTree = new TChain("anaTrack/trackTree"); */
 
   TString fname;  TString fname1;  TString fname2;  TString fname3;  TString fname4;   TString fname5;
 
@@ -99,9 +92,16 @@ void onia2ySkim_2nd( int nevt = -1,
   if(fileID == kPPMCUps1S) inf_func = new TFile("compareDataMc/ratioDataMC_PP_DATA_1sState.root","read");
   else if(fileID == kPPMCUps2S) inf_func = new TFile("compareDataMc/ratioDataMC_PP_DATA_2sState.root","read");
   else if(fileID == kPPMCUps3S) inf_func = new TFile("compareDataMc/ratioDataMC_PP_DATA_2sState.root","read");
-  else if(fileID == kAAMCUps1S) inf_func = new TFile("compareDataMc/ratioDataMC_AA_DATA_1sState.root","read");
-  else if(fileID == kAAMCUps2S) inf_func = new TFile("compareDataMc/ratioDataMC_AA_DATA_2sState.root","read");
-  else if(fileID == kAAMCUps3S) inf_func = new TFile("compareDataMc/ratioDataMC_AA_DATA_2sState.root","read");
+  else if(fileID == kAAMCUps1S) inf_func = new TFile("compareDataMc/ratioDataMC_PA_DATA_1sState.root","read");
+  else if(fileID == kAAMCUps2S) inf_func = new TFile("compareDataMc/ratioDataMC_PA_DATA_2sState.root","read");
+  else if(fileID == kAAMCUps3S) inf_func = new TFile("compareDataMc/ratioDataMC_PA_DATA_2sState.root","read");
+
+  TF1* fWgt = new TF1("fWgt","( [0] + [1]*x + [2]*x*x ) / (  (x-[3])*(x-[3])*(x-[3])  )");
+
+  if( fileID == kPPMCUps1S ) fWgt->SetParameters( 4.31213e+02,1.68660e+01,3.05209e+01,-5.91966e+00);
+  else if( (fileID == kPPMCUps2S) || (fileID == kPPMCUps3S) ) fWgt->SetParameters( 3.31946e+03, 9.42285e+02, 2.04657e+02, -1.86672e+01);
+  else if( fileID == kAAMCUps1S) fWgt->SetParameters(3.15619e+02,-8.65884e+01,4.65292e+01,-5.34732e+00);
+  else if( (fileID == kAAMCUps2S) || (fileID == kAAMCUps3S) ) fWgt->SetParameters(2.28610e+02, 4.80360e+01, 5.29009e+01, -6.88728e+00);
 
   TF1* wFunc[nYBins+1];
   wFunc[1] = new TF1("weightCurve_1s",fTsallis1SR,0,30,4);
@@ -193,8 +193,12 @@ void onia2ySkim_2nd( int nevt = -1,
     hWeight->SetBinContent(4,  5.48684);
   }
 
+
+
   cout << endl << "*==*==*==*==*==*==*==* INPUT FILE *==*==*==*==*==*==*==*==*" << endl;
-  //  if (f1->IsZombie()) { cout << "*** KYO : CANNOT open the root file!! Macro terminated ***" << endl; return;} 
+
+  TFile *f1 = new TFile(Form("%s",fname.Data()),"read");
+  if (f1->IsZombie()) { cout << "*** KYO : CANNOT open the root file!! Macro terminated ***" << endl; return;} 
   cout <<"* file ::" << fname << endl;
   
   
@@ -210,56 +214,13 @@ void onia2ySkim_2nd( int nevt = -1,
 
   
 
-  // *==*==*==*==*==*==* Trigger selection *==*==*==*==*==*==* //
-  TString trigName = getTrig(trigId);
-  hltIndex hltBits = getTrigIndex(trigId, fname);
-  
-  // *==*==*==*==*==*==* Event Plane  *==*==*==*==*==*==* //
-  TString epName = getEPSel(epSelection) ;
-  cout << " Event Plane : " << epName << endl;
-  
-  
   // *==*==*==*==*==*==* Output file  *==*==*==*==*==*==* //
   TFile* newfile;
   if (fileID == kPPDATA) {
-    newfile = new TFile(Form("skimmedFiles/yskimPP_L1DoubleMu0PD_Trig-%s_%s_%s_%s.root",trigName.Data(), fdimusign.Data(), getDayAndTime().Data(), skimVersion.Data() ),"recreate");   
+    newfile = new TFile(Form("skimmedFiles/yskimPP_L1DoubleMu0PD_%s_%s_%s.root",fdimusign.Data(), getDayAndTime().Data(), skimVersion.Data() ),"recreate");   
   }
   if (fileID == kPADATA) {
-    //newfile = new TFile(Form("skimmedFiles/yskimPA_Trig-%s_%s_%s_%s.root",trigName.Data(), fdimusign.Data(), getDayAndTime().Data(), skimVersion.Data() ),"recreate");   
     newfile = new TFile(Form("skimmedFiles/yskimPA2nd_%s_%s_%s.root",fdimusign.Data(), getDayAndTime().Data(), skimVersion.Data() ),"recreate");   
-  }
-  else if (fileID == kAADATA) { 
-    newfile = new TFile(Form("skimmedFiles/yskimPbPb_L1DoubleMu0PD_Trig-%s_%s_EP-%s_%s_%s.root",trigName.Data(),fdimusign.Data(),epName.Data(), getDayAndTime().Data(), skimVersion.Data()),"recreate"); 
-  }
-  else if  (fileID == kAADATACentL3) {
-    newfile = new TFile(Form("skimmedFiles/yskimPbPb_CentralPD_Trig-%s_%s_EP-%s_%s_%s.root",trigName.Data(),fdimusign.Data(),epName.Data(), getDayAndTime().Data(), skimVersion.Data()),"recreate"); 
-  }
-  else if  (fileID == kAADATAPeri) { 
-    newfile = new TFile(Form("skimmedFiles/yskimPbPb_PeripheralPD_Trig-%s_%s_EP-%s_%s_%s.root",trigName.Data(),fdimusign.Data(),epName.Data(), getDayAndTime().Data(), skimVersion.Data()),"recreate"); 
-  }
-  else if (fileID == kPPMC) {
-    newfile = new TFile(Form("skimmedFiles/yskimPP_MC_Trig-%s_%s_EP-%s_%s_%s.root",trigName.Data(),fdimusign.Data(),epName.Data(), getDayAndTime().Data(), skimVersion.Data()),"recreate"); 
-  }
-  else if (fileID == kAAMC) {
-    newfile = new TFile(Form("skimmedFiles/yskimPbPb_MC_Trig-%s_%s_EP-%s_%s_%s.root",trigName.Data(),fdimusign.Data(),epName.Data(), getDayAndTime().Data(), skimVersion.Data()),"recreate");
-  }
-  else if (fileID == kPPMCUps1S) {
-    newfile = new TFile(Form("skimmedFiles/yskimPP_MC_Ups1S_Trig-%s_%s_EP-%s_%s_%s.root",trigName.Data(),fdimusign.Data(),epName.Data(), getDayAndTime().Data(), skimVersion.Data()),"recreate"); 
-  }
-  else if (fileID == kPPMCUps2S) {
-    newfile = new TFile(Form("skimmedFiles/yskimPP_MC_Ups2S_Trig-%s_%s_EP-%s_%s_%s.root",trigName.Data(),fdimusign.Data(),epName.Data(), getDayAndTime().Data(), skimVersion.Data()),"recreate"); 
-  }
-  else if (fileID == kPPMCUps3S) {
-    newfile = new TFile(Form("skimmedFiles/yskimPP_MC_Ups3S_Trig-%s_%s_EP-%s_%s_%s.root",trigName.Data(),fdimusign.Data(),epName.Data(), getDayAndTime().Data(), skimVersion.Data()),"recreate"); 
-  }
-  else if (fileID == kAAMCUps1S) {
-    newfile = new TFile(Form("skimmedFiles/yskimAA_MC_Ups1S_Trig-%s_%s_EP-%s_%s_%s.root",trigName.Data(),fdimusign.Data(),epName.Data(), getDayAndTime().Data(), skimVersion.Data()),"recreate"); 
-  }
-  else if (fileID == kAAMCUps2S) {
-    newfile = new TFile(Form("skimmedFiles/yskimAA_MC_Ups2S_Trig-%s_%s_EP-%s_%s_%s.root",trigName.Data(),fdimusign.Data(),epName.Data(), getDayAndTime().Data(), skimVersion.Data()),"recreate"); 
-  }
-  else if (fileID == kAAMCUps3S) {
-    newfile = new TFile(Form("skimmedFiles/yskimAA_MC_Ups3S_Trig-%s_%s_EP-%s_%s_%s.root",trigName.Data(),fdimusign.Data(),epName.Data(), getDayAndTime().Data(), skimVersion.Data()),"recreate"); 
   }
    
    
@@ -297,8 +258,14 @@ void onia2ySkim_2nd( int nevt = -1,
   mytree->SetBranchAddress("Reco_QQ_mupl_isHighPurity", Reco_QQ_mupl_isHighPurity, &b_Reco_QQ_mupl_isHighPurity);
   mytree->SetBranchAddress("Reco_QQ_mumi_isHighPurity", Reco_QQ_mumi_isHighPurity, &b_Reco_QQ_mumi_isHighPurity);
 
+  Bool_t          Reco_QQ_mupl_TrkMuArb[200];
+  Bool_t          Reco_QQ_mumi_TrkMuArb[200];
+  TBranch        *b_Reco_QQ_mupl_TrkMuArb;   //!
+  TBranch        *b_Reco_QQ_mumi_TrkMuArb;   //!
+  mytree->SetBranchAddress("Reco_QQ_mupl_TrkMuArb", Reco_QQ_mupl_TrkMuArb, &b_Reco_QQ_mupl_TrkMuArb);
+  mytree->SetBranchAddress("Reco_QQ_mumi_TrkMuArb", Reco_QQ_mumi_TrkMuArb, &b_Reco_QQ_mumi_TrkMuArb);
 
-  
+
   Reco_QQ_4mom = 0;
   Reco_QQ_mupl_4mom = 0;
   Reco_QQ_mumi_4mom = 0;
@@ -453,104 +420,6 @@ void onia2ySkim_2nd( int nevt = -1,
   Float_t         Reco_QQ_mumi_ptErr_global[200];   //[Reco_QQ_size]
   TBranch        *b_Reco_QQ_mumi_ptErr_global;   //!
   mytree->SetBranchAddress("Reco_QQ_mumi_ptErr_global", Reco_QQ_mumi_ptErr_global, &b_Reco_QQ_mumi_ptErr_global);
-
-  /////////////////////////////////////////
-  ////// Gen QQ 
-  /////////////////////////////////////////
-  Int_t           Gen_QQ_size;
-  Int_t           Gen_QQ_type[200];   //[Gen_QQ_size]
-  TClonesArray    *Gen_QQ_4mom;
-  TClonesArray    *Gen_QQ_mupl_4mom;
-  TClonesArray    *Gen_QQ_mumi_4mom;
-  TBranch        *b_Gen_QQ_size;   //!
-  TBranch        *b_Gen_QQ_type;   //!
-  TBranch        *b_Gen_QQ_4mom;   //!
-  TBranch        *b_Gen_QQ_mupl_4mom;   //!
-  TBranch        *b_Gen_QQ_mumi_4mom;   //!
-  Gen_QQ_4mom = 0;
-  Gen_QQ_mupl_4mom = 0;
-  Gen_QQ_mumi_4mom = 0;
-  if (isMC) { 
-    mytree->SetBranchAddress("Gen_QQ_size", &Gen_QQ_size, &b_Gen_QQ_size);
-    mytree->SetBranchAddress("Gen_QQ_type", Gen_QQ_type, &b_Gen_QQ_type);
-    mytree->SetBranchAddress("Gen_QQ_4mom", &Gen_QQ_4mom, &b_Gen_QQ_4mom);
-    mytree->SetBranchAddress("Gen_QQ_mupl_4mom", &Gen_QQ_mupl_4mom, &b_Gen_QQ_mupl_4mom);
-    mytree->SetBranchAddress("Gen_QQ_mumi_4mom", &Gen_QQ_mumi_4mom, &b_Gen_QQ_mumi_4mom);
-  }
-  
-  
-  
-
-
-  
-  /*  const int NMAXTRK = 10000;
-  Int_t           nTrk;
-  Float_t         trkPt[NMAXTRK];   //[nTrk]
-  Float_t         trkPtError[NMAXTRK];   //[nTrk]
-  UChar_t         trkNHit[NMAXTRK];   //[nTrk]
-  Float_t         trkEta[NMAXTRK];   //[nTrk]
-  Float_t         trkPhi[NMAXTRK];   //[nTrk]
-  Int_t           trkCharge[NMAXTRK];   //[nTrk]
-  Bool_t          highPurity[NMAXTRK];   //[nTrk]
-  Bool_t          tight[NMAXTRK];   //[nTrk]
-  Bool_t          loose[NMAXTRK];   //[nTrk]
-  Float_t         trkChi2[NMAXTRK];   //[nTrk]
-  UChar_t         trkNdof[NMAXTRK];   //[nTrk]
-  Float_t         trkDxy1[NMAXTRK];   //[nTrk]
-  Float_t         trkDxyError1[NMAXTRK];   //[nTrk]
-  Float_t         trkDz1[NMAXTRK];   //[nTrk]
-  Float_t         trkDzError1[NMAXTRK];   //[nTrk]
-  Bool_t          trkFake[NMAXTRK];   //[nTrk]
-  UChar_t         trkAlgo[NMAXTRK];   //[nTrk]
-  Float_t         trkMVA[NMAXTRK];   //[nTrk]
-  Float_t         pfEcal[NMAXTRK]; //[nTrk]
-  Float_t         pfHcal[NMAXTRK]; //[nTrk]
-  
-  TBranch        *b_nTrk;   //!
-  TBranch        *b_trkPt;   //!
-  TBranch        *b_trkPtError;   //!
-  TBranch        *b_trkNHit;   //!
-  TBranch        *b_trkEta;   //!
-  TBranch        *b_trkPhi;   //!
-  TBranch        *b_trkCharge;   //!
-  TBranch        *b_highPurity;   //!
-  TBranch        *b_tight;   //!
-  TBranch        *b_loose;   //!
-  TBranch        *b_trkChi2;   //!
-  TBranch        *b_trkNdof;   //!
-  TBranch        *b_trkDxy1;   //!
-  TBranch        *b_trkDxyError1;   //!
-  TBranch        *b_trkDz1;   //!
-  TBranch        *b_trkDzError1;   //!
-  TBranch        *b_trkFake;   //!
-  TBranch        *b_trkAlgo;   //!
-  TBranch        *b_trkMVA;   //!
-  TBranch        *b_pfEcal;   //!
-  TBranch        *b_pfHcal;   //!
-  if (saveTracks) { 
-    trkTree->SetBranchAddress("nTrk", &nTrk, &b_nTrk);
-    trkTree->SetBranchAddress("trkPt", trkPt, &b_trkPt);
-    trkTree->SetBranchAddress("trkPtError", trkPtError, &b_trkPtError);
-    trkTree->SetBranchAddress("trkNHit", trkNHit, &b_trkNHit);
-    trkTree->SetBranchAddress("trkEta", trkEta, &b_trkEta);
-    trkTree->SetBranchAddress("trkPhi", trkPhi, &b_trkPhi);
-    trkTree->SetBranchAddress("trkCharge", trkCharge, &b_trkCharge);
-    trkTree->SetBranchAddress("highPurity", highPurity, &b_highPurity);
-    trkTree->SetBranchAddress("tight", tight, &b_tight);
-    trkTree->SetBranchAddress("loose", loose, &b_loose);
-    trkTree->SetBranchAddress("trkChi2", trkChi2, &b_trkChi2);
-    trkTree->SetBranchAddress("trkNdof", trkNdof, &b_trkNdof);
-    trkTree->SetBranchAddress("trkDxy1", trkDxy1, &b_trkDxy1);
-    trkTree->SetBranchAddress("trkDxyError1", trkDxyError1, &b_trkDxyError1);
-    trkTree->SetBranchAddress("trkDz1", trkDz1, &b_trkDz1);
-    trkTree->SetBranchAddress("trkDzError1", trkDzError1, &b_trkDzError1);
-    trkTree->SetBranchAddress("trkFake", trkFake, &b_trkFake);
-    trkTree->SetBranchAddress("trkAlgo", trkAlgo, &b_trkAlgo);
-    trkTree->SetBranchAddress("trkMVA", trkMVA, &b_trkMVA);
-    trkTree->SetBranchAddress("pfEcal", pfEcal, &b_pfEcal);
-    trkTree->SetBranchAddress("pfHcal", pfHcal, &b_pfHcal);
-    } */
-
   
   
   ////////////////////////////////////////////////////////////////////////
@@ -568,6 +437,39 @@ void onia2ySkim_2nd( int nevt = -1,
   hfTree->Branch("SumET_HF",&SumET_HF,"SumET_HF/F");
   hfTree->Branch("Ntracks",&Ntracks,"Ntracks/I");
   
+  /////////////////////////////////////////
+  ////// Gen QQ 
+  /////////////////////////////////////////
+  Int_t           Gen_QQ_size;
+  Int_t           Gen_QQ_type[200];   //[Gen_QQ_size]
+  TClonesArray    *Gen_QQ_4mom;
+  TClonesArray    *Gen_QQ_mupl_4mom;
+  TClonesArray    *Gen_QQ_mumi_4mom;
+  TBranch        *b_Gen_QQ_size;   //!
+  TBranch        *b_Gen_QQ_type;   //!
+  TBranch        *b_Gen_QQ_4mom;   //!
+  TBranch        *b_Gen_QQ_mupl_4mom;   //!
+  TBranch        *b_Gen_QQ_mumi_4mom;   //!
+  Gen_QQ_4mom = 0;
+  Gen_QQ_mupl_4mom = 0;
+  Gen_QQ_mumi_4mom = 0;
+
+  if (isMC) { 
+    mytree->SetBranchAddress("Gen_QQ_size", &Gen_QQ_size, &b_Gen_QQ_size);
+    mytree->SetBranchAddress("Gen_QQ_type", Gen_QQ_type, &b_Gen_QQ_type);
+    mytree->SetBranchAddress("Gen_QQ_4mom", &Gen_QQ_4mom, &b_Gen_QQ_4mom);
+    mytree->SetBranchAddress("Gen_QQ_mupl_4mom", &Gen_QQ_mupl_4mom, &b_Gen_QQ_mupl_4mom);
+    mytree->SetBranchAddress("Gen_QQ_mumi_4mom", &Gen_QQ_mumi_4mom, &b_Gen_QQ_mumi_4mom);
+  }
+  
+  DiMuon dmGen;
+  TTree *mmGenTree;
+  if (isMC)  {
+    mmGenTree = new TTree("mmGen","Gen Di-muon Pairs");
+    mmGenTree->SetMaxTreeSize(MAXTREESIZE);
+    mmGenTree->Branch("mmGen",&dmGen.run,branchString.Data());
+  }
+  
   
   ////////////////////////////////////////////////////////////////////////
   //////////////////  RooDataSet 
@@ -582,60 +484,13 @@ void onia2ySkim_2nd( int nevt = -1,
   RooRealVar* cBinVar   = new RooRealVar("cBin","Centrality bin", -100,500,"");
   RooRealVar* ep2Var   = new RooRealVar("ep2","2nd order event plane", -100,100,"");
   RooRealVar* dphiEp2Var   = new RooRealVar("dphiEp2","Delta Phi from 2nd order event plane", -100,100,"");
-/*  RooRealVar* HFplus4   = new RooRealVar("HFplus4","", 0,1000,"");
-  RooRealVar* HFminus4   = new RooRealVar("HFminus4","", 0,1000,"");
-  RooRealVar* HFplus   = new RooRealVar("HFplus","", 0,1000,"");
-  RooRealVar* HFminus   = new RooRealVar("HFminus","", 0,1000,"");
-  RooRealVar* HF   = new RooRealVar("HF","", 0,1000,"");
-  RooRealVar* ntracks   = new RooRealVar("ntracks","", 0,1000,"");
-*/  RooRealVar* evtWeight = new RooRealVar("weight","pt weight", 0, 10000,"");
-  //  RooArgSet* argSet    = new RooArgSet(*massVar, *ptVar, *yVar, *ep2Var, *pt1Var, *eta1Var, *pt2Var, *eta2Var);
-  RooArgSet* argSet    = new RooArgSet(*massVar, *ptVar, *yVar, *pt1Var, *pt2Var, *evtWeight);
-  if ( (fileID == kAAMC) || (fileID == kAADATA) || (fileID == kAADATAPeri) || (fileID == kAADATACentL3) || (fileID == kPAMC) || (fileID == kPADATA) || (fileID==kAAMCUps1S) || (fileID==kAAMCUps2S)|| (fileID==kAAMCUps3S) )
-  {argSet->add(*cBinVar);argSet->add(*ep2Var); argSet->add(*dphiEp2Var);}
-
+  RooRealVar* evtWeight = new RooRealVar("weight","pt weight", 0, 10000,"");
+  RooRealVar* hfpluseta4 = new RooRealVar("hfpluseta4","HF pluseta4", 0, 2000,"GeV/c^{2}");
+  RooRealVar* hfminuseta4 = new RooRealVar("hfminuseta4","HF minuseta4", 0, 2000,"GeV/c^{2}");
+  RooArgSet* argSet    = new RooArgSet(*massVar, *ptVar, *yVar, *pt1Var, *pt2Var, *eta1Var, *eta2Var, *hfpluseta4, *hfminuseta4);
   
   RooDataSet* dataSet  = new RooDataSet("dataset", " a dataset", *argSet);
 
-  ////////////////////////////////////////////////////////////////////////
-  //////////////////  Gen QQ tree        
-  ////////////////////////////////////////////////////////////////////////
-  DiMuon dmGen;
-  TTree *mmGenTree;
-  if (isMC)  {
-    mmGenTree = new TTree("mmGen","Gen Di-muon Pairs");
-    mmGenTree->SetMaxTreeSize(MAXTREESIZE);
-    mmGenTree->Branch("mmGen",&dmGen.run,branchString.Data());
-  }
-    
-  /*
-////////////////////////////////////////////////////////////////////////
-  //////////////////  Track tree        
-  ////////////////////////////////////////////////////////////////////////
-  TTree *trkOutTree = new TTree("track","trackTree");
-  static const int MAXTRK  = 10000;   // This must be  enough.
-  int nTrkOut;
-  float trkOutPt[MAXTRK];
-  float trkOutEta[MAXTRK];
-  float trkOutPhi[MAXTRK];
-  float trkOutDphi[MAXTRK];
-  float trkOutDeta[MAXTRK];
-  float trkOutDr[MAXTRK];
-  float trkPiTripleMass[MAXTRK];
-  float trkKaTripleMass[MAXTRK];
-  float trkOutCorr[MAXTRK];
-  trkOutTree->SetMaxTreeSize(MAXTREESIZE);
-  trkOutTree->Branch("nTrack",&nTrkOut,"nTrack/I");
-  trkOutTree->Branch("pt",trkOutPt,"pt[nTrack]/F");
-  trkOutTree->Branch("eta",trkOutEta,"eta[nTrack]/F");
-  trkOutTree->Branch("phi",trkOutPhi,"phi[nTrack]/F");
-  trkOutTree->Branch("dphi",trkOutDphi,"dphi[nTrack]/F");
-  trkOutTree->Branch("deta",trkOutDeta,"deta[nTrack]/F");
-  trkOutTree->Branch("dr",trkOutDr,"dr[nTrack]/F");
-  trkOutTree->Branch("corr",trkOutCorr,"corr[nTrack]/F");
-  trkOutTree->Branch("massPiTriple",trkPiTripleMass,"massPiTriple[nTrack]/F");
-  trkOutTree->Branch("massKaTriple",trkKaTripleMass,"massKaTriple[nTrack]/F");
-  */  
   
   ////////////////////////////////////////////////////////////////////////
   //////////////////  Event selection tree 
@@ -668,6 +523,7 @@ void onia2ySkim_2nd( int nevt = -1,
   int DIMUPASS_CENT8 = 0;
   int DIMUPASS_CENT9 = 0;
 
+  double ch_pluseta4,ch_minuseta4,ch_plus,ch_minus;
   // event loop start
   if(nevt == -1) nevt = mytree->GetEntries();
   for(int iev=0; iev<nevt ; ++iev)
@@ -681,6 +537,9 @@ void onia2ySkim_2nd( int nevt = -1,
         
     hEvent->GetXaxis()->SetBinLabel(1,"Events total");     hEvent->Fill(1);  
 
+    if ( !((HLTriggers&1)==1))  
+      continue; // trigger selection
+    
     dmGen.clear();
     /////////////////////////////////////////////////////
     /////////  gen QQ loop first
@@ -719,10 +578,12 @@ void onia2ySkim_2nd( int nevt = -1,
         // MC pT weight :  
         if ( (fileID == kPPMCUps1S) || (fileID == kPPMCUps2S) || (fileID == kPPMCUps3S) ||  (fileID == kAAMCUps1S) || (fileID == kAAMCUps2S) || (fileID == kAAMCUps3S))  {
           if ( (fileID == kPPMCUps1S) || (fileID == kAAMCUps1S)) {
-            dmGen.weight = dmGen.weight0 * wFunc[1]->Eval(dmGen.pt); 
+            dmGen.weight = dmGen.weight0 * fWgt->Eval(dmGen.pt); 
+            //dmGen.weight = dmGen.weight0 * wFunc[1]->Eval(dmGen.pt); 
           }	  
           else {
-      	    dmGen.weight = dmGen.weight0 * wFunc[2]->Eval(dmGen.pt); 
+      	    dmGen.weight = dmGen.weight0 * fWgt->Eval(dmGen.pt); 
+      	    //dmGen.weight = dmGen.weight0 * wFunc[2]->Eval(dmGen.pt); 
           }
         }		 
 
@@ -744,21 +605,8 @@ void onia2ySkim_2nd( int nevt = -1,
       } //end of Gen QQ tree
     } //end of isMC condition for Gen QQ tree
     
-    ///////////////////////////
-    ///// Vertex cut //////////
-    ///////////////////////////
-    //    if (TMath::Abs(zVtx) > 15.) continue;
-    //    hEvent->GetXaxis()->SetBinLabel(2,"Events z vertex < 15cm");    hEvent->Fill(2);
-    
-    // Trigger cut is now moved into the RECO_QQ loop..
-   
-    //if ( isTrigMatched(hltBits,HLTriggers) == false ) 
-    if ( !((HLTriggers&1)==1))  
-      continue; // trigger selection
 
     HLTPASS++;
-
-    hEvent->GetXaxis()->SetBinLabel(3,Form("Events Trig %s",trigName.Data()));    hEvent->Fill(3);
 
     dm.clear();
     dm.run = runNb;
@@ -770,13 +618,10 @@ void onia2ySkim_2nd( int nevt = -1,
     for (Int_t irqq=0; irqq<Reco_QQ_size; ++irqq) 
     {
       hEvent->GetXaxis()->SetBinLabel(4,"Di-muons Total");      hEvent->Fill(4);
-      //struct Condition Jpsi_Reco; 
       JP_Reco = (TLorentzVector*) Reco_QQ_4mom->At(irqq);
       mupl_Reco = (TLorentzVector*) Reco_QQ_mupl_4mom->At(irqq);
       mumi_Reco = (TLorentzVector*) Reco_QQ_mumi_4mom->At(irqq);
-      //       if ( !  ( acceptance( mupl_Reco->Pt(), mupl_Reco->Eta(), mupl_Reco->P()) && acceptance( mumi_Reco->Pt(), mumi_Reco->Eta(), mumi_Reco->P())) )
-
-      //if (  isTrigMatched(hltBits,Reco_QQ_trig[irqq]) == false )
+      
       if ( !((Reco_QQ_trig[irqq]&1)==1) )
         continue; // trigger selection
       hEvent->GetXaxis()->SetBinLabel(7,"Di-muons trig");      hEvent->Fill(7);
@@ -788,20 +633,18 @@ void onia2ySkim_2nd( int nevt = -1,
         continue;      
       hEvent->GetXaxis()->SetBinLabel(5,"Di-muons Accep");      hEvent->Fill(5);
 
-      // muon id cut :  tight cut  pixel cut is missing!!
-      // Reference : https://twiki.cern.ch/twiki/bin/view/CMS/SWGuideMuonIdRun2#Soft_Muon
-      bool muplSoft = ( (Reco_QQ_mupl_TMOneStaTight[irqq]==true) &&
+      bool muplSoft = ( (Reco_QQ_mupl_TMOneStaTight[irqq]==true) && (Reco_QQ_mupl_TrkMuArb[irqq] == true) &&
           (Reco_QQ_mupl_nTrkWMea[irqq] > 5) &&
-          (Reco_QQ_mupl_nPixWMea[irqq] > 1) &&
+          (Reco_QQ_mupl_nPixWMea[irqq] > 0) &&
           (Reco_QQ_mupl_dxy[irqq]<0.3) &&
-          (Reco_QQ_mupl_dz[irqq]<30.)	 //&&  (Reco_QQ_mupl_isHighPurity[irqq]==true) 
+          (Reco_QQ_mupl_dz[irqq]<20.)	 &&  (Reco_QQ_mupl_isHighPurity[irqq]==true) 
           ) ; 
 
-      bool mumiSoft = ( (Reco_QQ_mumi_TMOneStaTight[irqq]==true) &&
+      bool mumiSoft = ( (Reco_QQ_mumi_TMOneStaTight[irqq]==true) && (Reco_QQ_mumi_TrkMuArb[irqq] = true) && 
           (Reco_QQ_mumi_nTrkWMea[irqq] > 5) &&
-          (Reco_QQ_mumi_nPixWMea[irqq] > 1) &&
+          (Reco_QQ_mumi_nPixWMea[irqq] > 0) &&
           (Reco_QQ_mumi_dxy[irqq]<0.3) &&
-          (Reco_QQ_mumi_dz[irqq]<30.) // && (Reco_QQ_mumi_isHighPurity[irqq]==true)
+          (Reco_QQ_mumi_dz[irqq]<20.)  && (Reco_QQ_mumi_isHighPurity[irqq]==true)
           ) ; 
 
       bool muplHighPtCut = ( (Reco_QQ_mupl_nMuValHits[irqq]>0) &&
@@ -844,13 +687,6 @@ void onia2ySkim_2nd( int nevt = -1,
 
       hEvent->GetXaxis()->SetBinLabel(9,"Di-muoons charge sign");      hEvent->Fill(9);
 
-      dm.softFlag = 0;
-      if (muplSoft && mumiSoft) 
-        dm.softFlag = 1;
-
-      dm.highPtFlag = 0;
-      if ( muplHighPtCut && mumiHighPtCut ) 
-        dm.highPtFlag = 1;
 
       dm.mass   = JP_Reco->M();
       dm.pt     = JP_Reco->Pt();
@@ -864,23 +700,6 @@ void onia2ySkim_2nd( int nevt = -1,
       dm.eta2 = mumi_Reco->Eta();
       dm.phi2 = mumi_Reco->Phi();
 
-      dm.weight0 = dmGen.weight0;
-      dm.weight = dmGen.weight;
-
-      if      ( epSelection == kEPl2HF )            dm.ep2 = rpAng[8];  
-      else if ( epSelection == kEPOppositeHF )      
-      {
-        if ( dm.y > 0 )     dm.ep2 = rpAng[6];  // [6] = HFm2;
-        else                 dm.ep2 = rpAng[7];  // [7] = HFm2;
-      }
-      else if ( epSelection == kEPSameSideHF )      
-      {
-        if ( dm.y > 0 )     dm.ep2 = rpAng[7];  
-        else                 dm.ep2 = rpAng[6]; 
-      }
-
-      dm.dphiEp2 = getDPHI( dm.phi, dm.ep2);
-      
       dm.oniaIndex = irqq;
       mmTree->Fill();
 
@@ -895,9 +714,21 @@ void onia2ySkim_2nd( int nevt = -1,
       ep2Var->setVal( (double)dm.ep2 ) ;
       cBinVar->setVal( (double)dm.cBin ) ;
       evtWeight->setVal( (double)dm.weight ) ;
+      hfpluseta4->setVal( (double) SumET_HFminusEta4) ;
+      hfminuseta4->setVal( (double) SumET_HFplusEta4) ;
       dataSet->add( *argSet);
     } // end of dimuon loop
+     
+      ch_pluseta4 = SumET_HFplusEta4; 
       
+      ch_minuseta4 = SumET_HFminusEta4; 
+      ch_plus = SumET_HFplus; 
+      ch_minus = SumET_HFminus;
+
+      SumET_HFplusEta4 = ch_minuseta4; 
+      SumET_HFminusEta4 = ch_pluseta4; 
+      SumET_HFplus = ch_minus; 
+      SumET_HFminus = ch_plus; 
       hfTree->Fill();
   } //end of event loop
   
@@ -911,16 +742,6 @@ void onia2ySkim_2nd( int nevt = -1,
   cout << "1. # of events passing HLT : " << HLTPASS << endl;
   cout << "2. # of dimuons passing trigger matching after pass 1 : " << DIMUTRIGPASS << endl;
   cout << "3. # of dimuons passing muon ID cut after pass 1-2 & acceptance cut : " << DIMUIDPASS << endl;
-  cout << "Cent All : # of dimuons passing mass range 7.5-14 after pass 1-3 & vertex probability cut for all central events (0-100%) " << DIMUPASS_all << endl;
-  cout << "Cent 1. # of dimuons passing mass range 7.5-14 after pass 1-3 & vertex probability cut for centrality (0-5%)   : " << DIMUPASS_CENT1 << endl;
-  cout << "Cent 2. # of dimuons passing mass range 7.5-14 after pass 1-3 & vertex probability cut for centrality (5-10%)  : " << DIMUPASS_CENT2 << endl;
-  cout << "Cent 3. # of dimuons passing mass range 7.5-14 after pass 1-3 & vertex probability cut for centrality (10-20%) : " << DIMUPASS_CENT3 << endl;
-  cout << "Cent 4. # of dimuons passing mass range 7.5-14 after pass 1-3 & vertex probability cut for centrality (20-30%) : " << DIMUPASS_CENT4 << endl;
-  cout << "Cent 5. # of dimuons passing mass range 7.5-14 after pass 1-3 & vertex probability cut for centrality (30-40%) : " << DIMUPASS_CENT5 << endl;
-  cout << "Cent 6. # of dimuons passing mass range 7.5-14 after pass 1-3 & vertex probability cut for centrality (40-50%) : " << DIMUPASS_CENT6 << endl;
-  cout << "Cent 7. # of dimuons passing mass range 7.5-14 after pass 1-3 & vertex probability cut for centrality (50-60%) : " << DIMUPASS_CENT7 << endl;
-  cout << "Cent 8. # of dimuons passing mass range 7.5-14 after pass 1-3 & vertex probability cut for centrality (60-70%) : " << DIMUPASS_CENT8 << endl;
-  cout << "Cent 9. # of dimuons passing mass range 7.5-14 after pass 1-3 & vertex probability cut for centrality (70-80%) : " << DIMUPASS_CENT9 << endl;
   cout << "******************" << endl;
   cout << "******************" << endl;
   cout << endl;
@@ -928,75 +749,10 @@ void onia2ySkim_2nd( int nevt = -1,
 
   dataSet->Write();
   mmTree->Write();  // Don't need to call Write() for trees
-  hfTree->Write(); 
   hEvent->Write();
-  if (isMC) mmGenTree->Write();
-  //   if (saveTracks) trkOutTree->Write();
+  hfTree->Write();
   newfile->Close();
 } 
-
-
-
-/*
-      Jpsi_Reco.theMass = JP_Reco->M();
-      Jpsi_Reco.theRapidity = JP_Reco->Rapidity(); // y_{lab}	
-      Jpsi_Reco.thePt = JP_Reco->Pt();
-      Jpsi_Reco.thePhi = JP_Reco->Phi();
-      
-      Jpsi_Reco.mupl_p = sqrt( (mupl_Reco->Px())*(mupl_Reco->Px()) + (mupl_Reco->Py())*(mupl_Reco->Py()) + (mupl_Reco->Pz())*(mupl_Reco->Pz()) );
-      Jpsi_Reco.mumi_p = sqrt( (mumi_Reco->Px())*(mumi_Reco->Px()) + (mumi_Reco->Py())*(mumi_Reco->Py()) + (mumi_Reco->Pz())*(mumi_Reco->Pz()) );
-      Jpsi_Reco.mupl_pt = mupl_Reco->Pt();
-      Jpsi_Reco.mumi_pt = mumi_Reco->Pt();
-      Jpsi_Reco.mupl_eta = mupl_Reco->Eta();
-      Jpsi_Reco.mumi_eta = mumi_Reco->Eta();
-      */    
-
-/*  ////// Gen_QQ_size loop
-    for (Int_t igqq=0; igqq<Gen_QQ_size; ++igqq) {
-    //struct Condition Jpsi_Gen; 
-    mupl_Gen = (TLorentzVector*) Gen_QQ_mupl_4mom->At(igqq);
-    mumi_Gen = (TLorentzVector*) Gen_QQ_mumi_4mom->At(igqq);
-    JP_Gen_tmp_qq = (TLorentzVector*) Gen_QQ_4mom->At(igqq); // Gen Jpsi (for filling NoCut)
-    *JP_Gen_tmp = *mupl_Gen +  *mumi_Gen; // Gen dimuon pairs (for filling NoCut)
-	  
-	  // variables only used for Reco
-	  Jpsi_Gen.HLTriggers = 0;
-	  Jpsi_Gen.Reco_QQ_trig  = 0;
-	  Jpsi_Gen.theSign = 0; //already +- pair
-	  
-	  Jpsi_Gen.theCentrality = 97.5; // for pp!
-	  Jpsi_Gen.theType = Gen_QQ_type[igqq]; // PR or NP
-	  Jpsi_Gen.mupl_p = sqrt( (mupl_Gen->Px())*(mupl_Gen->Px()) + (mupl_Gen->Py())*(mupl_Gen->Py()) + (mupl_Gen->Pz())*(mupl_Gen->Pz()) );
-	  Jpsi_Gen.mumi_p = sqrt( (mumi_Gen->Px())*(mumi_Gen->Px()) + (mumi_Gen->Py())*(mumi_Gen->Py()) + (mumi_Gen->Pz())*(mumi_Gen->Pz()) );
-	  Jpsi_Gen.mupl_pt = mupl_Gen->Pt();
-	  Jpsi_Gen.mumi_pt = mumi_Gen->Pt();
-	  Jpsi_Gen.mupl_eta = mupl_Gen->Eta();
-	  Jpsi_Gen.mumi_eta = mumi_Gen->Eta();
-	  
-	  // --- cut01 : GEN - No cut (only DimuCut = +-pair from 443)
-	  h2D_NoCut_Gen_pt_y->Fill(JP_Gen_tmp->Rapidity(),JP_Gen_tmp->Pt()); // Gen dimuon
-	  h2D_NoCut_GenJpsi_pt_y->Fill(JP_Gen_tmp_qq->Rapidity(),JP_Gen_tmp_qq->Pt()); // Gen Jpsi
-	  
-	  // --- cut02 : GEN for denominator
-	  bool yn_gen = false;
-	  if ( kineCut(Jpsi_Gen.mupl_pt, Jpsi_Gen.mupl_eta, Jpsi_Gen.mupl_p) 
-			&& kineCut(Jpsi_Gen.mumi_pt, Jpsi_Gen.mumi_eta, Jpsi_Gen.mumi_p)) {
-			*JP_Gen = *mupl_Gen +  *mumi_Gen; // used for actual denominator ( GEN dimuon pairs)
-			Jpsi_Gen.theMass = JP_Gen->M();
-			Jpsi_Gen.theRapidity = JP_Gen->Rapidity();	
-			Jpsi_Gen.thePt = JP_Gen->Pt();
-			Jpsi_Gen.thePhi = JP_Gen->Phi();
-			if ( massCut1(Jpsi_Gen.theMass)  
-			&& minpt<=Jpsi_Gen.thePt && Jpsi_Gen.thePt <maxpt 
-			&& minylab<=Jpsi_Gen.theRapidity && Jpsi_Gen.theRapidity <maxylab) {
-			yn_gen = true;
-			}
-			}
-			if (yn_gen == true){
-			h2D_Den_pt_y->Fill(Jpsi_Gen.theRapidity,Jpsi_Gen.thePt,zWeight01*zWeight02);
-			} // end of yn_gen
-			} //end of Gen_QQ_size loop
-      */
 
 
 
@@ -1015,16 +771,4 @@ TString getDayAndTime()
   int Min    = localTime->tm_min;
   //  int Sec    = localTime->tm_sec;
   return Form("%d%d%d%d%d",Year,Month,Day,Hour,Min);
-}
-
-
-bool isTrackMatched(float pt1, float eta1, float phi1, float pt2, float eta2, float phi2) {
-  if (  (pt1-pt2)/pt1 > 0.02 ) 
-    return false;
-  if ( fabs( getDPHI(phi1, phi2) ) > 0.1 )
-    return false;
-  if ( fabs( eta1 - eta2 ) > 0.1 )
-    return false;
-
-  return true;
 }

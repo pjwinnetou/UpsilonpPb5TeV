@@ -18,10 +18,10 @@
 
 using namespace std;
 using namespace RooFit;
-void doFitUpsilon_Data_AllParmFree(
+void doFitUpsilon_Data_AllParmFree_pp(
        int collId = kPPDATA,  
        float ptLow=0, float ptHigh=30, 
-       float yLow=-1.46, float yHigh=2.4,
+       float yLow=-1.93, float yHigh=1.93,
        int cLow=0, int cHigh=200,
        float muPtCut=4.0
        )
@@ -44,7 +44,7 @@ void doFitUpsilon_Data_AllParmFree(
   int   nMassBin  = 60;
   TFile* f1;
   TFile* f2;
-  if      ( collId == kPPDATA) f1 = new TFile("/home/deathold/work/CMS/analysis/Upsilon_RAA/upsilonRAA5TeV/skimmedFiles/");
+  if      ( collId == kPPDATA) f1 = new TFile("/home/deathold/work/CMS/analysis/Upsilon_RAA/upsilonRAA5TeV/skimmedFiles/yskimPP_L1DoubleMu0PD_Trig-L1DoubleMu0_OpSign_20177262158_.root");
   
   if ( collId == kPADATA) 
   {
@@ -52,8 +52,8 @@ void doFitUpsilon_Data_AllParmFree(
     f2 = new TFile("/home/deathold/work/CMS/analysis/Upsilon_RpA/UpsilonpPb5TeV/skimmedFiles/yskimPA2nd_OpSign_20177262044_unIdentified.root");
   }
  
-  float eta_low = -1.46;
-  float eta_high = 2.4;
+  float eta_low = -1.93;
+  float eta_high = 1.93;
   TString kineLabel = getKineLabel (collId, ptLow, ptHigh, yLow, yHigh, muPtCut, cLow, cHigh, dphiEp2Low, dphiEp2High) ;
   //TString kineCut = Form("pt>%.2f && pt<%.2f && y>%.2f && y<%.2f",ptLow, ptHigh, yLow, yHigh);
   TString kineCut = Form("pt>%.2f && pt<%.2f && y>%.2f && y<%.2f && eta1<%.2f && eta1>%.2f && eta2<%.2f && eta2>%.2f",ptLow, ptHigh, yLow, yHigh, eta_high,eta_low, eta_high,eta_low );
@@ -62,8 +62,11 @@ void doFitUpsilon_Data_AllParmFree(
   
   TTree* tree = (TTree*) f1->Get("mm");
   RooDataSet *dataset = (RooDataSet*)f1->Get("dataset");
-  RooDataSet *dataset2 = (RooDataSet*)f2->Get("dataset");
-  dataset->append(*dataset2);
+  if(collId == kPADATA)
+  {
+    RooDataSet *dataset2 = (RooDataSet*)f2->Get("dataset");
+    dataset->append(*dataset2);
+  }
   RooWorkspace *ws = new RooWorkspace("workspace");
   ws->import(*dataset);
   ws->data("dataset")->Print();
@@ -218,11 +221,11 @@ void doFitUpsilon_Data_AllParmFree(
   else if(ptLow == 0 && ptHigh==2.5) drawText(Form("p_{T}^{#mu#mu} < %.1f GeV/c",ptHigh ),pos_text_x,pos_text_y,text_color,text_size);
   else drawText(Form("%.f < p_{T}^{#mu#mu} < %.f GeV/c",ptLow,ptHigh ),pos_text_x,pos_text_y,text_color,text_size);
 //  if(yLow==0) drawText(Form("|y^{#mu#mu}| < %.1f",yHigh ), pos_text_x,pos_text_y-pos_y_diff,text_color,text_size);
-  drawText(Form("%.2f < y^{#mu#mu}_{CM} < %.2f",yLow-0.47,yHigh-0.47 ), pos_text_x,pos_text_y-pos_y_diff,text_color,text_size);
+  drawText(Form("%.2f < y^{#mu#mu}_{CM} < %.2f",yLow,yHigh ), pos_text_x,pos_text_y-pos_y_diff,text_color,text_size);
   if(collId != kPPDATA && collId != kPPMCUps1S && collId != kPPMCUps2S) 
   {
       drawText(Form("p_{T}^{#mu} > %.f GeV/c", muPtCut ), pos_text_x,pos_text_y-pos_y_diff*2,text_color,text_size);
-      drawText(Form("|#eta^{#mu}_{CM}| < %.2f",eta_high-0.47), pos_text_x,pos_text_y-pos_y_diff*3,text_color,text_size);
+      drawText(Form("|#eta^{#mu}_{CM}| < %.2f",eta_high), pos_text_x,pos_text_y-pos_y_diff*3,text_color,text_size);
       drawText(Form("Centrality %d-%d%s",cLow/2,cHigh/2,perc.Data()),pos_text_x,pos_text_y-pos_y_diff*4,text_color,text_size);
   }
   else {
